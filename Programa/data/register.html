@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content=" Cadastro, Funcionário, Acesso, Site">
+    <meta name="author" content="Otlevire">
+    <meta name="generator" content="Registro de Usuário do Site">
+    <title>SITE | Cadastro de Funcionário</title>
+    <link rel="stylesheet" href="./bootstrap.min.css">
+    <style>
+         body{
+            display: flex;
+            height: 100vh;
+            background: url('estufa-capa.jpg') no-repeat;
+            background-repeat:no-repeat;
+            background-position: center;
+            background-size: cover;
+        }
+        .box{
+            background-color: transparent !important;
+            border: 1px solid #eee;
+            color: #fff;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container bg-light p-5 w-75 m-auto rounded box">
+        <form  class="row g-3" action="/make-register" method = "POST" id="formCadastro" class="form">            
+            <h1 class="cabacalho">
+                <img class="logoLogin" src="./loginIcon.png" alt="Icone Login" width="50" height="50">
+                Cadastre o Funcionário!
+            </h1>
+            <div class="col-12">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" name="username"  class="form-control" id="username" placeholder="Digite o seu username" >
+            </div>
+
+           
+            <div class="col-12">
+                <label for="passwordUser" class="form-label">Password</label>
+                <input type="password" name="passwordUser"  class="form-control" id="passwordUser" placeholder="Digite a senha do User" required>
+            </div>
+
+            <div class="col-12">
+                <label for="passwordAdmin" class="form-label">Password Admin</label>
+                <input type="password" name="passwordAdmin"  class="form-control" id="passwordAdmin" placeholder="Digite a password admin" required>
+            </div>
+
+
+            <div class="col-md-12">
+                <a href="/login" class="btn btn-primary">Voltar Login</a>
+                <button type="submit" class="btn btn-primary">Cadastrar</button>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>
