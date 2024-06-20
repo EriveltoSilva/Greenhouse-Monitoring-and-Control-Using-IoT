@@ -11,18 +11,18 @@
       *** 6-Cooler                               **
 **************************************************/
 
-/* Fill-in information from Blynk Device Info here */
+/******* Fill-in information from Blynk Device Info here *******/
 #define BLYNK_TEMPLATE_ID    "TMPL2Ztxrhb6i"
 #define BLYNK_TEMPLATE_NAME  "Quickstart Template"
 #define BLYNK_AUTH_TOKEN     "kbk4xTfU3SqmPJwoPP6zbjJVBqsp3eYl"
-
-/* Comment this out to disable prints and save space */
+/******* Comment this out to disable prints and save space *******/
 #define BLYNK_PRINT Serial
 
 //////////////  PIN CONFIGURATIONS /////////////
 #define LED 2                              /////
 #define LIGHTS 4                           /////
 #define BUZZER 5                           /////
+#define FUN 13                             /////
 #define DHTPIN 15                          /////
 #define BTN_PUMP 18                        /////
 #define BTN_LIGHTS 12                      /////
@@ -30,21 +30,21 @@
 #define PUMP 23                            /////
 #define FLAME_SENSOR 34                    /////
 #define SMOKE_SENSOR 35                    /////
-#define LDR_SENSOR 39                      /////
-#define SOIL_SENSOR 36                     /////
+#define LDR_SENSOR 39       //pino VN      /////
+#define SOIL_SENSOR 36      //pino VP      /////
 ////////////////////////////////////////////////
 
-///////////// OTHER CONSTANTS DEFINITIONS /////////
-#define DEBUG true                            /////
-#define DHTTYPE DHT11                         /////
-#define LIMIAR_FLAME 65                       /////
-#define LIMIAR_SMOKE 60                       /////
-///////////////////////////////////////////////////
+///////////// OTHER CONSTANTS DEFINITIONS ////////
+#define DEBUG true                           /////
+#define DHTTYPE DHT11                        /////
+#define LIMIAR_FLAME 65                      /////
+#define LIMIAR_SMOKE 60                      /////
+//////////////////////////////////////////////////
 
-////////////  NETWORK CONFIGURATIONS ///////////
-char ssid[] = "NETHOUSE";                  /////
-char pass[] = "Eduanara3130";              /////
-////////////////////////////////////////////////
+////////////  NETWORK CONFIGURATIONS /////////////
+char ssid[] = "NETHOUSE";                    /////
+char pass[] = "Eduanara3130";                /////
+//////////////////////////////////////////////////
 
 /////////////// Libraries Used  ////////////////
 #include <WiFi.h>                          /////
@@ -62,7 +62,7 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);        /////
 ////////////////////////////////////////////////
 
 //////// VARIABLES USED IN THE PROJECT //////////
-byte cont=0;                                /////
+byte cont = 0;                              /////
 char projectMode = 'A';                     /////
 unsigned long int timeDelay = 0;            /////
 bool buzzerPreviewStatus = false;           /////
@@ -72,18 +72,49 @@ bool flagSmoke = false, flagFlame = false;  /////
 int flame = 0, smoke = 0;                   /////
 int lights = 0, soilMeasure = 0;            /////
 /////////////////////////////////////////////////
+String statusAlarm="";                      /////
+String statusFun="", statusPump="";         /////
+String statusSmoke="", statusFlame="";      /////
+String statusLights="", statusTemperature="";////
+String statusHumidity="", statusSoilMeasure="";//
+/////////////////////////////////////////////////
 
 
-// This function is called every time the Virtual Pin 0 state changes
-BLYNK_WRITE(V0)
+BLYNK_WRITE(V16)
 {
+  /* MUDANÇA DO MODO*/
   int value = param.asInt();
-  Blynk.virtualWrite(V1, value);
+  projectMode = (value==0)?'A':'M';
+  if(DEBUG)
+    Serial.println("MUDANÇA DE ESTADO:"+String(value)+", PARA:"+String(projectMode));
+}
+
+BLYNK_WRITE(V17)
+{
+  /* ACIONANDO BOMBA */
+  int value = param.asInt();
+  if(projectMode =='M' && value==1)
+  {
+    digitalWrite(PUMP, !digitalRead(PUMP)); 
+  }
+  if(DEBUG)
+    Serial.println("MUDANÇA DA BOMBA:"+String(value)+", PARA:"+isPumpOn());
+}
+
+BLYNK_WRITE(V18)
+{
+  /* ACIONANDO VENTILADOR */
+  int value = param.asInt();
+  if(projectMode =='M' && value==1)
+  {
+    digitalWrite(FUN, !digitalRead(FUN)); 
+  }
+  if(DEBUG)
+    Serial.println("MUDANÇA DO VENTILADOR:"+String(value)+", PARA:"+isFunOn());
 }
 
 BLYNK_CONNECTED()
 {
-  // Change Web Link Button message to "Congratulations!"
   Blynk.setProperty(V3, "offImageUrl", "https://static-image.nyc3.cdn.digitaloceanspaces.com/general/fte/congratulations.png");
   Blynk.setProperty(V3, "onImageUrl",  "https://static-image.nyc3.cdn.digitaloceanspaces.com/general/fte/congratulations_pressed.png");
   Blynk.setProperty(V3, "url",         "https://docs.blynk.io/en/getting-started/what-do-i-need-to-blynk/how-quickstart-device-was-made");
@@ -91,13 +122,28 @@ BLYNK_CONNECTED()
 
 void sendDataToBlynk()
 {
-  Blynk.virtualWrite(V0, isPumpOn()?"BOMBA LIGADA": "BOMBA DESLIGADA");
-  Blynk.virtualWrite(V1, lights);
-  Blynk.virtualWrite(V2, soilMeasure);
-  Blynk.virtualWrite(V3, humidity);
-  Blynk.virtualWrite(V4, temperature);
-  Blynk.virtualWrite(V5, flame);
-  Blynk.virtualWrite(V6, smoke);
+  Blynk.virtualWrite(V0, lights);
+  Blynk.virtualWrite(V1, statusLights);
+  
+  Blynk.virtualWrite(V2, statusFun);
+  Blynk.virtualWrite(V3, statusPump);
+  
+  Blynk.virtualWrite(V4, soilMeasure);
+  Blynk.virtualWrite(V5, statusSoilMeasure);
+
+  Blynk.virtualWrite(V6, humidity);
+  Blynk.virtualWrite(V7, statusHumidity);
+    
+  Blynk.virtualWrite(V8, temperature);
+  Blynk.virtualWrite(V9, statusTemperature);
+
+  Blynk.virtualWrite(V10, smoke);
+  Blynk.virtualWrite(V11, statusSmoke);
+
+  Blynk.virtualWrite(V12, flame);
+  Blynk.virtualWrite(V13, statusFlame);  
+  Blynk.virtualWrite(V14, statusAlarm);
+  Blynk.virtualWrite(V15, (projectMode=='A')?"AUTOMATICO":"MANUAL");
 }
 
 
@@ -105,6 +151,7 @@ void setup()
 {
   initSetup();
   Serial.begin(115200);
+  dht.begin();
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
   timer.setInterval(2000L, sendDataToBlynk);
 }
@@ -138,6 +185,9 @@ void initSetup() {
   pinMode(BUZZER, OUTPUT);
   digitalWrite(BUZZER, LOW);
   
+  pinMode(FUN, OUTPUT);
+  turnOffFun();
+  
   pinMode(PUMP, OUTPUT);
   turnOffPump();
 
@@ -152,9 +202,14 @@ void initSetup() {
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
-  lcd.print("UNIV. METODISTA");
+  lcd.print("# UNIV. METODISTA  #");
   lcd.setCursor(0, 1);
-  lcd.print("#  ESTUFA IoT  #");
+  lcd.print("#    ESTUFA IoT    #");
+  lcd.setCursor(-4, 2);
+  lcd.print("#    ENG. FILIPE   #");
+  lcd.setCursor(-4, 3);
+  lcd.print("#     ENG. LEO     #");
+  
   delay(2000);
 }
 
@@ -199,6 +254,20 @@ void turnOffBuzzer() {
   digitalWrite(BUZZER, LOW);
 }
 
+bool isFunOn() {
+  return (!digitalRead(FUN));
+}
+
+void turnOnFun() 
+{
+  digitalWrite(FUN, LOW);
+}
+
+void turnOffFun() 
+{
+  digitalWrite(FUN, HIGH);
+}
+
 bool isPumpOn() {
   return (!digitalRead(PUMP));
 }
@@ -234,7 +303,7 @@ void analyseData()
 {
   if (projectMode == 'A') 
   {
-    if (soilMeasure < 10 && !flagSoil) {
+    if (soilMeasure < 30 && !flagSoil) {
       flagSoil = true;
       turnOnPump();
     } else if (soilMeasure > 50 && flagSoil) {
@@ -250,17 +319,21 @@ void analyseData()
     if (flame >= LIMIAR_FLAME && !flagFlame) {
       flagFlame = true;
       flagAlarm = true;
+      statusFlame="FOGO DETECTADO";
     } else if (flame < LIMIAR_FLAME && flagFlame) {
       flagFlame = false;
       flagAlarm = false;
+      statusFlame="SEM FOGO";
     }
 
     if (smoke >= LIMIAR_SMOKE && !flagSmoke) {
       flagSmoke = true;
       flagAlarm = true;
+      statusSmoke = "FUMO DETECTADO";
     } else if (flame < LIMIAR_SMOKE && flagSmoke) {
       flagSmoke = false;
       flagAlarm = false;
+      statusSmoke = "SEM FUMO";
     }
 
     if (flagFlame && flagSmoke)
@@ -269,6 +342,33 @@ void analyseData()
       turnOffPump();  
   }
 
+  statusLights = isLightsOn() ? "LUZES LIGADAS" : "LUZES DESLIGADAS";
+  statusPump = isPumpOn() ? "BOMBA LIGADA" : "BOMBA DESLIGADA";
+  statusFun = isFunOn() ? "VENTILADOR LIGADO" : "VENTILADOR DESLIGADO";
+  statusAlarm= flagAlarm? "ALARME LIGADO":"ALARME DESLIGADO";
+
+  if (temperature > 32)
+    statusTemperature = "ALTA";
+  else if(temperature >= 10)
+    statusTemperature = "NORMAL";
+  else
+    statusTemperature = "BAIXA";
+
+  if (humidity >= 85)
+    statusHumidity = "ALTA";
+  else if (humidity >= 45)
+    statusHumidity = "NORMAL";
+  else
+    statusHumidity = "BAIXA";
+
+  if (soilMeasure >= 85)
+    statusSoilMeasure = "HUMIDO";
+  else if (soilMeasure > 30)
+    statusSoilMeasure = "NORMAL";
+  else
+    statusSoilMeasure = "SECO";
+
+  
   if(DEBUG){
     Serial.println("TEMP.....:" + String(temperature) + "%");
     Serial.println("HUM......:" + String(humidity) + "%");
@@ -283,8 +383,10 @@ void analyseData()
 
 }
 
-void printDataLCD() {
-  static byte counter=0;
+void printDataLCD() 
+{
+  static byte counter = 0;
+  static bool flagS = false;
   lcd.init();
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -300,20 +402,19 @@ void printDataLCD() {
       lcd.print("HUM. AR...:");
       lcd.print(humidity);
       lcd.print("%");
-    break;
 
-    case 1:
+      lcd.setCursor(-4, 2);
       lcd.print("CHAMAS....:");
       lcd.print(flame);
       lcd.print("%");
 
-      lcd.setCursor(0, 1);
+      lcd.setCursor(-4, 3);
       lcd.print("FUMO......:");
       lcd.print(smoke);
       lcd.print("%");
     break;
 
-    case 2:
+    case 1:
       lcd.print("HUM.  SOLO:");
       lcd.print(soilMeasure);
       lcd.print("%");
@@ -322,30 +423,34 @@ void printDataLCD() {
       lcd.print("FUMO......:");
       lcd.print(smoke);
       lcd.print("%");
-    break;
 
-    case 3:
+      lcd.setCursor(-4, 2);
       lcd.print("CLAREZA...:");
       lcd.print(lights);
       lcd.print("%");
 
-      lcd.setCursor(0, 1);
+      lcd.setCursor(-4, 3);
       lcd.print("LUZES.....:");
       lcd.print(isLightsOn() ? "ON" : "OFF");
+      
     break;
-
-    case 4:
+    case 2:
       lcd.print("BOMBA.....:");
       lcd.print(isPumpOn() ? "ON" : "OFF");
-    break;
-  }
+      lcd.setCursor(0, 1);
+      lcd.print("VENTILADOR:");
+      lcd.print(isFunOn() ? "ON" : "OFF");
 
-  lcd.setCursor(19, 0);
+    break;
+
+  }
+  lcd.setCursor(16, 3);
   lcd.print(projectMode);
-  if (++counter >= 5) counter = 0;
+  if (++counter >= 3) counter = 0;
 }
 
-void buttonsHandler() {
+void buttonsHandler() 
+{
   if (!digitalRead(BTN_STATUS)) 
   {
     projectMode = (projectMode == 'A') ? 'M' : 'A';
