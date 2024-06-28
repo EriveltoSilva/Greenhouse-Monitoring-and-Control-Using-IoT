@@ -312,7 +312,7 @@ void readSensors()
   humidity = dht.readHumidity();
   temperature = dht.readTemperature();
   flame = 100 - map(analogRead(FLAME_SENSOR), 0, 4095, 0, 100);
-  smoke = map(analogRead(SMOKE_SENSOR), 0, 4095, 0, 100);
+  smoke = 100 - map(analogRead(SMOKE_SENSOR), 0, 4095, 0, 100);
   lights = 100 - map(analogRead(LDR_SENSOR), 0, 4095, 0, 100);
   soilMeasure = 100 - map(analogRead(SOIL_SENSOR), 0, 4095, 0, 100);
 
@@ -327,7 +327,7 @@ void analyseData()
 {
   if (projectMode == 'A') 
   {
-    if (soilMeasure <= 40 && !flagSoil) {
+    if (soilMeasure < 40 && !flagSoil) {
       soilMeasure = 0;
       flagSoil = true;
       turnOnPump();
