@@ -11,7 +11,7 @@
       *** 6-Cooler                               **
 **************************************************/
 
-/******* Fill-in information from Blynk Device Info here *******/
+/*Information from Blynk Device Info here*/
 #define BLYNK_TEMPLATE_ID    "TMPL2Ztxrhb6i"
 #define BLYNK_TEMPLATE_NAME  "Quickstart Template"
 #define BLYNK_AUTH_TOKEN     "kbk4xTfU3SqmPJwoPP6zbjJVBqsp3eYl"
@@ -174,10 +174,7 @@ void loop()
     readSensors();
     analyseData();
     printDataLCD();
-    if(flagAlarm)
-      turnOnBuzzer();
-    else
-      turnOffBuzzer();
+    setAlarm(flagAlarm);
     digitalWrite(LED, !digitalRead(LED));
   }
 
@@ -264,6 +261,32 @@ void turnOnBuzzer() {
 void turnOffBuzzer() {
   digitalWrite(BUZZER, LOW);
 }
+
+void setAlarm(bool status) {
+  if (status) 
+  {
+    for (int i = 0; i < 100; i++)
+    {
+      digitalWrite(BUZZER, HIGH);
+      delay(1);
+      digitalWrite(BUZZER, LOW);
+      delay(1);
+    }
+    delay(100);
+
+    for (int i = 0; i < 200; i++) {
+      digitalWrite(BUZZER, HIGH);
+      delay(1);
+      digitalWrite(BUZZER, LOW);
+      delay(2);
+    }
+    //delay(900);
+  } else {
+    digitalWrite(BUZZER, LOW);
+    delay(1);
+  }
+}
+
 
 bool isFunOn() {
   return (!digitalRead(FUN));
@@ -376,24 +399,19 @@ void analyseData()
 
   if (temperature > 27){
     statusTemperature = "ALTA";
-    if(projectMode=='A'){
-      turnOffHeater();
-      turnOnFun();
-    }
+    turnOffHeater();
+    turnOnFun();
+    
   }
   else if(temperature >= 20){
     statusTemperature = "NORMAL";
-    if(projectMode=='A'){
-      turnOffHeater();
-      turnOffFun();
-    }
+    turnOffHeater();
+    turnOffFun();
   }
   else{
     statusTemperature = "BAIXA";
-    if(projectMode=='A'){
-      turnOnHeater();
-      turnOffFun();
-    }
+    turnOnHeater();
+    turnOffFun();
   }
 
 
@@ -413,14 +431,14 @@ void analyseData()
 
   
   if(DEBUG){
-    Serial.println("TEMP.....:" + String(temperature) + "%");
-    Serial.println("HUM......:" + String(humidity) + "%");
+    Serial.println("TEMPER...:" + String(temperature) + "%");
+    Serial.println("HUM. AR..:" + String(humidity) + "%");
     Serial.println("CHAMAS...:" + String(flame) + "%");
     Serial.println("FUMO.....:" + String(smoke) + "%");
     Serial.println("HUM. SOLO:" + String(soilMeasure) + "%");
     Serial.println("CLAREZA..:" + String(lights) + "%");
-    Serial.println("LUZES....:" +statusLights);
-    Serial.println("BOMBA....:" +statusPump);
+    Serial.println(statusLights);
+    Serial.println(statusPump);
     Serial.println("ESTADO PROEJCTO....:" + String(projectMode));
   }
 }
@@ -462,32 +480,29 @@ void printDataLCD()
       lcd.print("%");
 
       lcd.setCursor(0, 1);
-      lcd.print("FUMO......:");
-      lcd.print(smoke);
-      lcd.print("%");
-
-      lcd.setCursor(-4, 2);
       lcd.print("CLAREZA...:");
       lcd.print(lights);
       lcd.print("%");
 
-      lcd.setCursor(-4, 3);
-      lcd.print("LUZES.....:");
-      lcd.print(statusLights);
-
-    break;
-    case 2:
-      lcd.print("BOMBA.....:");
-      lcd.print(statusPump);
-      lcd.setCursor(0, 1);
-      lcd.print("VENTILADOR:");
-      lcd.print(statusFun);
       lcd.setCursor(-4, 2);
-      lcd.print("RES TERMICA:");
-      lcd.print(statusHeater);
+      lcd.print("LUZES.....:");
+      lcd.print((isLightsOn())?"ON":"OFF");
+      
       lcd.setCursor(-4, 3);
       lcd.print("ESTADO:");
       lcd.print((projectMode=='A')? "AUTOMATICO" : "MANUAL");
+
+    break;
+    case 2:
+      lcd.print("BOMBA....:");
+      lcd.print(isPumpOn()?"ON":"OFF");
+      lcd.setCursor(0, 1);
+      lcd.print("VENTILADOR:");
+      lcd.print(isFunOn()?"ON":"OFF");
+      lcd.setCursor(-4, 2);
+      lcd.print("RES TERMICA:");
+      lcd.print(isHeaterOn()?"ON":"OFF");
+      
     break;
   }
   if (++counter >= 3) counter = 0;
