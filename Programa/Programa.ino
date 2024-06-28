@@ -74,6 +74,7 @@ int lights = 0, soilMeasure = 0;            /////
 /////////////////////////////////////////////////
 String statusAlarm="";                      /////
 String statusFun="", statusPump="";         /////
+String statusHeater="";                     /////
 String statusSmoke="", statusFlame="";      /////
 String statusLights="", statusTemperature="";////
 String statusHumidity="", statusSoilMeasure="";//
@@ -370,14 +371,31 @@ void analyseData()
   statusLights = isLightsOn() ? "LUZES ON" : "LUZES OFF";
   statusPump = isPumpOn() ? "BOMBA ON" : "BOMBA OFF";
   statusFun = isFunOn() ? "VENTILADOR ON" : "VENTILADOR OFF";
+  statusHeater = isHeaterOn() ? "RES TERMICA ON" : "RES TERMICA OFF";
   statusAlarm= flagAlarm? "ALARME ON":"ALARME OFF";
 
-  if (temperature > 32)
+  if (temperature > 27){
     statusTemperature = "ALTA";
-  else if(temperature >= 10)
+    if(projectMode=='A'){
+      turnOffHeater();
+      turnOnFun();
+    }
+  }
+  else if(temperature >= 20){
     statusTemperature = "NORMAL";
-  else
+    if(projectMode=='A'){
+      turnOffHeater();
+      turnOffFun();
+    }
+  }
+  else{
     statusTemperature = "BAIXA";
+    if(projectMode=='A'){
+      turnOnHeater();
+      turnOffFun();
+    }
+  }
+
 
   if (humidity >= 85)
     statusHumidity = "ALTA";
@@ -401,11 +419,10 @@ void analyseData()
     Serial.println("FUMO.....:" + String(smoke) + "%");
     Serial.println("HUM. SOLO:" + String(soilMeasure) + "%");
     Serial.println("CLAREZA..:" + String(lights) + "%");
-    Serial.println("LUZES....:" + isLightsOn() ? "ON" : "OFF");
-    Serial.println("BOMBA....:" + isPumpOn() ? "ON" : "OFF");
+    Serial.println("LUZES....:" +statusLights);
+    Serial.println("BOMBA....:" +statusPump);
     Serial.println("ESTADO PROEJCTO....:" + String(projectMode));
   }
-
 }
 
 void printDataLCD() 
@@ -456,21 +473,23 @@ void printDataLCD()
 
       lcd.setCursor(-4, 3);
       lcd.print("LUZES.....:");
-      lcd.print(isLightsOn() ? "ON" : "OFF");
-      
+      lcd.print(statusLights);
+
     break;
     case 2:
       lcd.print("BOMBA.....:");
-      lcd.print(isPumpOn() ? "ON" : "OFF");
+      lcd.print(statusPump);
       lcd.setCursor(0, 1);
       lcd.print("VENTILADOR:");
-      lcd.print(isFunOn() ? "ON" : "OFF");
-
+      lcd.print(statusFun);
+      lcd.setCursor(-4, 2);
+      lcd.print("RES TERMICA:");
+      lcd.print(statusHeater);
+      lcd.setCursor(-4, 3);
+      lcd.print("ESTADO:");
+      lcd.print((projectMode=='A')? "AUTOMATICO" : "MANUAL");
     break;
-
   }
-  lcd.setCursor(16, 3);
-  lcd.print(projectMode);
   if (++counter >= 3) counter = 0;
 }
 
@@ -485,13 +504,13 @@ void buttonsHandler()
     flagSoil =false;
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("####################");
+    lcd.print("################");
     lcd.setCursor(0, 1);
-    lcd.print(" MUDANDO DE ESTADO ");
+    lcd.print("MUDANDO ESTADO");
     lcd.setCursor(0, 2);
-    lcd.print(" ESTADO " + String((projectMode == 'A') ? "AUTOMATICO" : "MANUAL"));
+    lcd.print("ESTADO " + String((projectMode == 'A') ? "AUTOMATICO" : "MANUAL"));
     lcd.setCursor(0, 3);
-    lcd.print("####################");
+    lcd.print("################");
     while (!digitalRead(BTN_STATUS));
   }
 
@@ -503,48 +522,49 @@ void buttonsHandler()
       time = int((millis() - pressTime) / 1000);
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("####################");
+      lcd.print("################");
       lcd.setCursor(0, 1);
-      lcd.print(" BOTAO PRESSIONADO ");
-      lcd.setCursor(0, 2);
-      lcd.print("      TEMPO:" + String(time) + "s");
-      lcd.setCursor(0, 3);
+      lcd.print("BOTAO ACIONADO");
+      lcd.setCursor(-4, 2);
+      lcd.print("TEMPO:" + String(time) + "s");
+      lcd.setCursor(-4, 3);
       lcd.print("CARGA:"+selectLoadText(time));
       delay(500);
     }
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("####################");
+    lcd.print("################");
     lcd.setCursor(0, 1);
 
-    if (time>12) {
+    if (time>9) {
       if (isHeaterOn())
         turnOffHeater();
       else
         turnOnHeater();
       lcd.print("RES.TERMICA:");
       lcd.setCursor(5, 2);
-      lcd.print(String((isHeaterOn()) ? "ON" : "OFF"));
+      lcd.print(statusHeater);
     }
-    else if (time>9) {
+     
+    else if (time>6) {
       if (isFunOn())
         turnOffFun();
       else
         turnOnFun();
       lcd.print("VENTILADOR: ");
       lcd.setCursor(5, 2);
-      lcd.print(String((isFunOn()) ? "ON" : "OFF"));
+      lcd.print(statusFun);
     }
-    else if (time>6) {
+    else if (time>3) {
       if (isPumpOn())
         turnOffPump();
       else
         turnOnPump();
 
-      lcd.print(" ESTADO DA BOMBA ");
+      lcd.print("ESTADO DA BOMBA ");
       lcd.setCursor(5, 2);
-      lcd.print(String((isPumpOn()) ? "ON" : "OFF"));
+      lcd.print(statusPump);
     }
     else {
       if (isLightsOn())
@@ -554,21 +574,20 @@ void buttonsHandler()
 
       lcd.print(" ESTADO DAS LUZES ");
       lcd.setCursor(5, 2);
-      lcd.print(String((isLightsOn()) ? "ON" : "OFF"));
+      lcd.print(statusLights);
     } 
-
-    lcd.setCursor(0, 3);
-    lcd.print("####################");
+    lcd.setCursor(-4, 3);
+    lcd.print("################");
   }
 }
 
 String selectLoadText(int time)
 { 
-  if(time>=12)
+  if(time>=9)
     return "RES. TERMICA";
-  else if(time>=9)
-    return "VENTILADOR";
   else if(time>=6)
+    return "VENTILADOR";
+  else if(time>=3)
     return "BOMBA";
   return "LUZES";
 }
