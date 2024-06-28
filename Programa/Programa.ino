@@ -22,10 +22,10 @@
 #define LED 2                              /////
 #define LIGHTS 4                           /////
 #define BUZZER 5                           /////
-#define FUN 13                             /////
+#define FUN 12                             /////
+#define HEATER 13                          /////
 #define DHTPIN 15                          /////
-#define BTN_PUMP 18                        /////
-#define BTN_LIGHTS 12                      /////
+#define BTN_LOADS 18                        /////
 #define BTN_STATUS 19                      /////
 #define PUMP 23                            /////
 #define FLAME_SENSOR 34                    /////
@@ -35,15 +35,15 @@
 ////////////////////////////////////////////////
 
 ///////////// OTHER CONSTANTS DEFINITIONS ////////
-#define DEBUG true                           /////
+#define DEBUG false                           /////
 #define DHTTYPE DHT11                        /////
 #define LIMIAR_FLAME 65                      /////
 #define LIMIAR_SMOKE 60                      /////
 //////////////////////////////////////////////////
 
 ////////////  NETWORK CONFIGURATIONS /////////////
-char ssid[] = "NETHOUSE";                    /////
-char pass[] = "Eduanara3130";                /////
+char ssid[] = "ESTUFA";                      /////
+char pass[] = "123456789";                   /////
 //////////////////////////////////////////////////
 
 /////////////// Libraries Used  ////////////////
@@ -58,7 +58,7 @@ char pass[] = "Eduanara3130";                /////
 /////////////// OBJECTS DEFINITIONS  ///////////
 BlynkTimer timer;                          /////
 DHT dht(DHTPIN, DHTTYPE);                  /////
-LiquidCrystal_I2C lcd(0x27, 20, 4);        /////
+LiquidCrystal_I2C lcd(0x27, 16, 4);        /////
 ////////////////////////////////////////////////
 
 //////// VARIABLES USED IN THE PROJECT //////////
@@ -85,8 +85,7 @@ BLYNK_WRITE(V16)
   /* MUDANÇA DO MODO*/
   int value = param.asInt();
   projectMode = (value==0)?'A':'M';
-  if(DEBUG)
-    Serial.println("MUDANÇA DE ESTADO:"+String(value)+", PARA:"+String(projectMode));
+  Serial.println("MUDANÇA DE ESTADO:"+String(value)+", PARA:"+String(projectMode));
 }
 
 BLYNK_WRITE(V17)
@@ -94,11 +93,10 @@ BLYNK_WRITE(V17)
   /* ACIONANDO BOMBA */
   int value = param.asInt();
   if(projectMode =='M' && value==1)
-  {
-    digitalWrite(PUMP, !digitalRead(PUMP)); 
-  }
-  if(DEBUG)
-    Serial.println("MUDANÇA DA BOMBA:"+String(value)+", PARA:"+isPumpOn());
+    turnOnPump();
+  else 
+    turnOffPump();
+  Serial.println("MUDANÇA DA BOMBA:"+String(value)+", PARA:"+isPumpOn());
 }
 
 BLYNK_WRITE(V18)
@@ -106,11 +104,21 @@ BLYNK_WRITE(V18)
   /* ACIONANDO VENTILADOR */
   int value = param.asInt();
   if(projectMode =='M' && value==1)
-  {
-    digitalWrite(FUN, !digitalRead(FUN)); 
-  }
-  if(DEBUG)
-    Serial.println("MUDANÇA DO VENTILADOR:"+String(value)+", PARA:"+isFunOn());
+    turnOnFun();
+  else
+    turnOffFun();  
+    Serial.println("MUDANÇA DO VENTILADOR:"+String(value) + " PARA:"+isFunOn());
+}
+
+BLYNK_WRITE(V19)
+{
+  /* ACIONANDO RESISTENCIA TÉRMICA */
+  int value = param.asInt();
+  if(projectMode =='M' && value==1)
+    turnOnHeater();
+  else
+    turnOffHeater();  
+    Serial.println("MUDANÇA DO HEATER:"+String(value) + " PARA:"+isHeaterOn());
 }
 
 BLYNK_CONNECTED()
@@ -187,6 +195,9 @@ void initSetup() {
   
   pinMode(FUN, OUTPUT);
   turnOffFun();
+
+  pinMode(HEATER, OUTPUT);
+  turnOffHeater();
   
   pinMode(PUMP, OUTPUT);
   turnOffPump();
@@ -195,20 +206,19 @@ void initSetup() {
   turnOffLights();
 
   pinMode(BTN_STATUS, INPUT_PULLUP);
-  pinMode(BTN_PUMP, INPUT_PULLUP);
-  pinMode(BTN_LIGHTS, INPUT_PULLUP);
+  pinMode(BTN_LOADS, INPUT_PULLUP);
   
   lcd.init();
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
-  lcd.print("# UNIV. METODISTA  #");
+  lcd.print("UNIV. METODISTA");
   lcd.setCursor(0, 1);
-  lcd.print("#    ESTUFA IoT    #");
+  lcd.print("  ESTUFA IoT ");
   lcd.setCursor(-4, 2);
-  lcd.print("#    ENG. FILIPE   #");
+  lcd.print("  ENG. FILIPE ");
   lcd.setCursor(-4, 3);
-  lcd.print("#     ENG. LEO     #");
+  lcd.print("   ENG. LEO   ");
   
   delay(2000);
 }
@@ -268,18 +278,32 @@ void turnOffFun()
   digitalWrite(FUN, HIGH);
 }
 
+bool isHeaterOn() {
+  return (!digitalRead(HEATER));
+}
+
+void turnOnHeater() 
+{
+  digitalWrite(HEATER, LOW);
+}
+
+void turnOffHeater() 
+{
+  digitalWrite(HEATER, HIGH);
+}
+
 bool isPumpOn() {
-  return (!digitalRead(PUMP));
+  return (digitalRead(PUMP));
 }
 
 void turnOnPump() 
 {
-  digitalWrite(PUMP, LOW);
+  digitalWrite(PUMP, HIGH);
 }
 
 void turnOffPump() 
 {
-  digitalWrite(PUMP, HIGH);
+  digitalWrite(PUMP, LOW);
 }
 
 /////////////////////////////////////////////////////
@@ -303,10 +327,11 @@ void analyseData()
 {
   if (projectMode == 'A') 
   {
-    if (soilMeasure < 30 && !flagSoil) {
+    if (soilMeasure <= 40 && !flagSoil) {
+      soilMeasure = 0;
       flagSoil = true;
       turnOnPump();
-    } else if (soilMeasure > 50 && flagSoil) {
+    } else if (soilMeasure >= 60 && flagSoil) {
       flagSoil = false;
       turnOffPump();
     }
@@ -342,10 +367,10 @@ void analyseData()
       turnOffPump();  
   }
 
-  statusLights = isLightsOn() ? "LUZES LIGADAS" : "LUZES DESLIGADAS";
-  statusPump = isPumpOn() ? "BOMBA LIGADA" : "BOMBA DESLIGADA";
-  statusFun = isFunOn() ? "VENTILADOR LIGADO" : "VENTILADOR DESLIGADO";
-  statusAlarm= flagAlarm? "ALARME LIGADO":"ALARME DESLIGADO";
+  statusLights = isLightsOn() ? "LUZES ON" : "LUZES OFF";
+  statusPump = isPumpOn() ? "BOMBA ON" : "BOMBA OFF";
+  statusFun = isFunOn() ? "VENTILADOR ON" : "VENTILADOR OFF";
+  statusAlarm= flagAlarm? "ALARME ON":"ALARME OFF";
 
   if (temperature > 32)
     statusTemperature = "ALTA";
@@ -363,7 +388,7 @@ void analyseData()
 
   if (soilMeasure >= 85)
     statusSoilMeasure = "HUMIDO";
-  else if (soilMeasure > 30)
+  else if (soilMeasure > 40)
     statusSoilMeasure = "NORMAL";
   else
     statusSoilMeasure = "SECO";
@@ -470,19 +495,21 @@ void buttonsHandler()
     while (!digitalRead(BTN_STATUS));
   }
 
-  if (!digitalRead(BTN_PUMP) && projectMode == 'M') 
+  if (!digitalRead(BTN_LOADS) && projectMode == 'M') 
   {
     unsigned long int pressTime = millis();
-    while (!digitalRead(BTN_PUMP)) {
+    int time =0;
+    while (!digitalRead(BTN_LOADS)) {
+      time = int((millis() - pressTime) / 1000);
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("####################");
       lcd.setCursor(0, 1);
       lcd.print(" BOTAO PRESSIONADO ");
       lcd.setCursor(0, 2);
-      lcd.print("      TEMPO:" + String((millis() - pressTime) / 1000) + "s");
+      lcd.print("      TEMPO:" + String(time) + "s");
       lcd.setCursor(0, 3);
-      lcd.print("####################");
+      lcd.print("CARGA:"+selectLoadText(time));
       delay(500);
     }
 
@@ -491,17 +518,25 @@ void buttonsHandler()
     lcd.print("####################");
     lcd.setCursor(0, 1);
 
-
-    if (millis() - pressTime > 3000) {
-      if (isLightsOn())
-        turnOffLights();
+    if (time>12) {
+      if (isHeaterOn())
+        turnOffHeater();
       else
-        turnOnLights();
-
-      lcd.print(" ESTADO DAS LUZES ");
+        turnOnHeater();
+      lcd.print("RES.TERMICA:");
       lcd.setCursor(5, 2);
-      lcd.print(String((isLightsOn()) ? "LIGADAS" : "DESLIGADAS"));
-    } else {
+      lcd.print(String((isHeaterOn()) ? "ON" : "OFF"));
+    }
+    else if (time>9) {
+      if (isFunOn())
+        turnOffFun();
+      else
+        turnOnFun();
+      lcd.print("VENTILADOR: ");
+      lcd.setCursor(5, 2);
+      lcd.print(String((isFunOn()) ? "ON" : "OFF"));
+    }
+    else if (time>6) {
       if (isPumpOn())
         turnOffPump();
       else
@@ -509,10 +544,31 @@ void buttonsHandler()
 
       lcd.print(" ESTADO DA BOMBA ");
       lcd.setCursor(5, 2);
-      lcd.print(String((isPumpOn()) ? "LIGADA" : "DESLIGADA"));
+      lcd.print(String((isPumpOn()) ? "ON" : "OFF"));
     }
+    else {
+      if (isLightsOn())
+        turnOffLights();
+      else
+        turnOnLights();
+
+      lcd.print(" ESTADO DAS LUZES ");
+      lcd.setCursor(5, 2);
+      lcd.print(String((isLightsOn()) ? "ON" : "OFF"));
+    } 
 
     lcd.setCursor(0, 3);
     lcd.print("####################");
   }
+}
+
+String selectLoadText(int time)
+{ 
+  if(time>=12)
+    return "RES. TERMICA";
+  else if(time>=9)
+    return "VENTILADOR";
+  else if(time>=6)
+    return "BOMBA";
+  return "LUZES";
 }
