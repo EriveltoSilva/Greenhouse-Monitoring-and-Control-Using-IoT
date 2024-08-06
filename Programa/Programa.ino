@@ -41,10 +41,10 @@
 #define LIMIAR_SMOKE 60                      /////
 //////////////////////////////////////////////////
 
-////////////  NETWORK CONFIGURATIONS /////////////
-char ssid[] = "ESTUFA";                      /////
-char pass[] = "123456789";                   /////
-//////////////////////////////////////////////////
+////////////  NETWORK CONFIGURATIONS ////////////
+char ssid[] = "ESTUFA";                     /////
+char pass[] = "123456789";                  /////
+////////////////////////////////////////////////
 
 /////////////// Libraries Used  ////////////////
 #include <WiFi.h>                          /////
@@ -352,10 +352,9 @@ void analyseData()
   if (projectMode == 'A') 
   {
     if (soilMeasure < 40 && !flagSoil) {
-      soilMeasure = 0;
       flagSoil = true;
       turnOnPump();
-    } else if (soilMeasure >= 60 && flagSoil) {
+    } else if (soilMeasure >= 70 && flagSoil) {
       flagSoil = false;
       turnOffPump();
     }
@@ -399,19 +398,27 @@ void analyseData()
 
   if (temperature > 27){
     statusTemperature = "ALTA";
-    turnOffHeater();
-    turnOnFun();
-    
+    if(projectMode == 'A')
+    {
+      turnOffHeater();
+      turnOnFun();
+    }
   }
   else if(temperature >= 20){
     statusTemperature = "NORMAL";
-    turnOffHeater();
-    turnOffFun();
+    if(projectMode == 'A') 
+    { 
+      turnOffHeater();
+      turnOffFun();
+    }
   }
   else{
     statusTemperature = "BAIXA";
-    turnOnHeater();
-    turnOffFun();
+    if(projectMode == 'A')
+    { 
+      turnOnHeater();
+      turnOffFun();
+    }
   }
 
 
